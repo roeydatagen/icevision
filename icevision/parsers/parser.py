@@ -56,10 +56,12 @@ class Parser(ClassMapMixin, ImageidMixin, SizeMixin, ParserInterface, ABC):
         pass
 
     def record_class(self) -> BaseRecord:
-        return create_mixed_record(self.record_mixins())
+        record_mixins = components.registry.match_components(
+            RecordMixin, self.components
+        )
+        return create_mixed_record(record_mixins)
 
     def parse_dicted(self, show_pbar: bool = True) -> Dict[int, RecordType]:
-
         Record = self.record_class()
         records = {}
 

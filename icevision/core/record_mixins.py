@@ -15,6 +15,7 @@ __all__ = [
 
 from icevision.imports import *
 from icevision.utils import *
+from icevision.core import components
 from .bbox import *
 from .mask import *
 from .exceptions import *
@@ -46,6 +47,7 @@ class RecordMixin:
         return []
 
 
+@components.classmap
 class ClassMapRecordMixin(RecordMixin):
     def set_class_map(self, class_map: ClassMap):
         self.class_map = class_map
@@ -54,6 +56,7 @@ class ClassMapRecordMixin(RecordMixin):
         return {"class_map": self.class_map, **super().as_dict()}
 
 
+@components.imageid
 class ImageidRecordMixin(RecordMixin):
     def set_imageid(self, imageid: int):
         self.imageid = imageid
@@ -69,6 +72,7 @@ class ImageidRecordMixin(RecordMixin):
 class ImageRecordMixin(RecordMixin):
     def set_img(self, img: np.ndarray):
         self.img = img
+        # TODO: setting size here?
         self.height, self.width, _ = self.img.shape
 
     def _repr(self) -> List[str]:
@@ -83,6 +87,7 @@ class ImageRecordMixin(RecordMixin):
         }
 
 
+@components.filepath
 class FilepathRecordMixin(RecordMixin):
     def set_filepath(self, filepath: Union[str, Path]):
         self.filepath = Path(filepath)
@@ -90,7 +95,7 @@ class FilepathRecordMixin(RecordMixin):
     def _load(self):
         self.img = open_img(self.filepath)
         # TODO, HACK: is it correct to overwrite height and width here?
-        self.height, self.width, _ = self.img.shape
+        # self.height, self.width, _ = self.img.shape
         super()._load()
 
     def _autofix(self) -> Dict[str, bool]:
@@ -104,14 +109,16 @@ class FilepathRecordMixin(RecordMixin):
         return [f"Filepath: {self.filepath}", *super()._repr()]
 
     def as_dict(self) -> dict:
-        # return {"filepath": self.filepath, **super().as_dict()}
-        # HACK: img, height, width are conditonal, use __dict__ to circumvent that
-        # can be resolved once `as_dict` gets removed
-        return {**self.__dict__, **super().as_dict()}
+        return {"filepath": self.filepath, **super().as_dict()}
+        # # HACK: img, height, width are conditonal, use __dict__ to circumvent that
+        # # can be resolved once `as_dict` gets removed
+        # return {**self.__dict__, **super().as_dict()}
 
 
+@components.size
 class SizeRecordMixin(RecordMixin):
     def set_image_size(self, width: int, height: int):
+        # TODO: use ImgSize
         self.width, self.height = width, height
 
     def _repr(self) -> List[str]:
@@ -128,8 +135,9 @@ class SizeRecordMixin(RecordMixin):
         return {"img_size": info, **super()._aggregate_objects()}
 
 
+@components.label
 ### Annotation parsers ###
-class LabelsRecordMixin(RecordMixin):
+class LabelsRecordMixin(RecordMixin, LabelBlock):
     def __init__(self):
         super().__init__()
         self.labels: List[int] = []
@@ -160,7 +168,8 @@ class LabelsRecordMixin(RecordMixin):
         return {"labels": self.labels, **super().as_dict()}
 
 
-class BBoxesRecordMixin(RecordMixin):
+@components.bbox
+class BBoxesRecordMixin(RecordMixin, BBoxBlock):
     def __init__(self):
         super().__init__()
         self.bboxes: List[BBox] = []
@@ -210,7 +219,16 @@ class BBoxesRecordMixin(RecordMixin):
     def as_dict(self) -> dict:
         return {"bboxes": self.bboxes, **super().as_dict()}
 
+    def prepare_transform(self, tfm):
+        tfm.prepare_bboxes(self)
+        super().prepare_transform(tfm)
 
+    def collect_transform(self, tfm):
+        self.bboxes = tfm.collect_bboxes(self)
+        super().transform()
+
+
+@components.mask
 class MasksRecordMixin(RecordMixin):
     def __init__(self):
         super().__init__()
@@ -238,6 +256,7 @@ class MasksRecordMixin(RecordMixin):
         return {"masks": self.masks, **super().as_dict()}
 
 
+@components.area
 class AreasRecordMixin(RecordMixin):
     def __init__(self):
         super().__init__()
@@ -260,6 +279,7 @@ class AreasRecordMixin(RecordMixin):
         return {"areas": self.areas, **super().as_dict()}
 
 
+@components.iscrowd
 class IsCrowdsRecordMixin(RecordMixin):
     def __init__(self):
         super().__init__()
@@ -285,6 +305,7 @@ class IsCrowdsRecordMixin(RecordMixin):
         return {"iscrowds": self.iscrowds, **super().as_dict()}
 
 
+@components.keypoint
 class KeyPointsRecordMixin(RecordMixin):
     def __init__(self):
         super().__init__()
@@ -292,6 +313,9 @@ class KeyPointsRecordMixin(RecordMixin):
 
     def add_keypoints(self, keypoints):
         self.keypoints.extend(keypoints)
+
+    def as_dict(self) -> dict:
+        return {"keypoints": self.keypoints, **super().as_dict()}
 
     def _aggregate_objects(self) -> Dict[str, List[dict]]:
         objects = [
