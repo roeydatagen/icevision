@@ -137,7 +137,7 @@ class SizeRecordMixin(RecordMixin):
 
 @components.label
 ### Annotation parsers ###
-class LabelsRecordMixin(RecordMixin, LabelBlock):
+class LabelsRecordMixin(RecordMixin):
     def __init__(self):
         super().__init__()
         self.labels: List[int] = []
@@ -169,7 +169,7 @@ class LabelsRecordMixin(RecordMixin, LabelBlock):
 
 
 @components.bbox
-class BBoxesRecordMixin(RecordMixin, BBoxBlock):
+class BBoxesRecordMixin(RecordMixin):
     def __init__(self):
         super().__init__()
         self.bboxes: List[BBox] = []
