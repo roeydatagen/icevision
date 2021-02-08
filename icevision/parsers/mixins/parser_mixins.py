@@ -18,6 +18,7 @@ from icevision.utils import *
 
 
 class ParserMixin(ABC):
+    # TODO: Rename to components_cls
     @property
     def components(self):
         return [o for o in type(self).__mro__ if issubclass(o, ParserMixin)]
@@ -30,14 +31,14 @@ class ParserMixin(ABC):
         return []
 
 
-@components.classmap
+@ClassMapComponent
 class ClassMapMixin(ParserMixin):
     def parse_fields(self, o, record):
         record.set_class_map(self.class_map)
         super().parse_fields(o, record)
 
 
-@components.imageid
+@ImageidComponent
 class ImageidMixin(ParserMixin):
     """Adds `imageid` method to parser"""
 
@@ -54,7 +55,7 @@ class ImageidMixin(ParserMixin):
         return ["def imageid(self, o) -> Hashable:"] + super()._templates()
 
 
-@components.filepath
+@FilepathComponent
 class FilepathMixin(ParserMixin):
     """Adds `filepath` method to parser"""
 
@@ -76,7 +77,7 @@ class FilepathMixin(ParserMixin):
         return ["def filepath(self, o) -> Union[str, Path]:"] + super()._templates()
 
 
-@components.size
+@SizeComponent
 class SizeMixin(ParserMixin):
     """Adds `image_width_height` method to parser"""
 
@@ -105,7 +106,7 @@ class SizeMixin(ParserMixin):
 
 
 ### Annotation parsers ###
-@components.label
+@LabelComponent
 class LabelsMixin(ParserMixin):
     """Adds `labels` method to parser"""
 
@@ -131,7 +132,7 @@ class LabelsMixin(ParserMixin):
         return templates + ["def labels(self, o) -> List[Hashable]:"]
 
 
-@components.bbox
+@BBoxComponent
 class BBoxesMixin(ParserMixin):
     """Adds `bboxes` method to parser"""
 
@@ -149,7 +150,7 @@ class BBoxesMixin(ParserMixin):
         return templates + ["def bboxes(self, o) -> List[BBox]:"]
 
 
-@components.mask
+@MaskComponent
 class MasksMixin(ParserMixin):
     """Adds `masks` method to parser"""
 
@@ -167,7 +168,7 @@ class MasksMixin(ParserMixin):
         return templates + ["def masks(self, o) -> List[Mask]:"]
 
 
-@components.area
+@AreaComponent
 class AreasMixin(ParserMixin):
     """Adds `areas` method to parser"""
 
@@ -185,7 +186,7 @@ class AreasMixin(ParserMixin):
         return templates + ["def areas(self, o) -> List[float]:"]
 
 
-@components.iscrowd
+@IsCrowdComponent
 class IsCrowdsMixin(ParserMixin):
     """Adds `iscrowds` method to parser"""
 
@@ -203,7 +204,7 @@ class IsCrowdsMixin(ParserMixin):
         return templates + ["def iscrowds(self, o) -> List[bool]:"]
 
 
-@components.keypoint
+@KeyPointComponent
 class KeyPointsMixin(ParserMixin):
     """Adds `keypoints` method to parser"""
 

@@ -1,55 +1,17 @@
-__all__ = ["BaseRecord", "autofix_records", "create_mixed_record"]
+__all__ = ["BaseRecord", "autofix_records"]
 
 from icevision.imports import *
 from icevision.utils import *
 from collections.abc import MutableMapping
-from copy import copy
-from .record_mixins import *
-from .exceptions import *
+from icevision.core.exceptions import *
+from icevision.core.components import *
 from icevision.core.record_components import *
-
-# TODO: Rename to BaseRecord
-# TODO: Can be used in RecordCompnents to avoid cyclical dependencies
-class BaseBaseRecord:
-    pass
 
 
 # TODO: MutableMapping because of backwards compatability
 # TODO: Rename to Record
-class BaseRecord(MutableMapping):
+class BaseRecord(Composite, MutableMapping):
     base_components = {ImageidRecordComponent, SizeRecordComponent}
-
-    def __init__(self, components: Sequence[RecordComponent]):
-        components = set(components).union(self.base_components)
-        self.components = set(component(record=self) for component in components)
-
-    def __getattr__(self, name):
-        # avoid recursion https://nedbatchelder.com/blog/201010/surprising_getattr_recursion.html
-        if name == "components":
-            raise AttributeError(name)
-        # delegates attributes to components
-        for component in self.components:
-            try:
-                return getattr(component, name)
-            except AttributeError:
-                pass
-        raise AttributeError(name)
-
-    # TODO: have this in a base class Composite: test this function
-    # TODO: refactor
-    def reduce_on_components(self, fn, reduction=None, **fn_kwargs) -> Any:
-        results = []
-        for component in self.components:
-            results.append(getattr(component, fn)(**fn_kwargs))
-
-        if reduction is not None:
-            out = results.pop(0)
-            for r in results:
-                getattr(out, reduction)(r)
-        else:
-            out = results
-
-        return out
 
     def as_dict(self) -> dict:
         return self.reduce_on_components("as_dict", reduction="update")
@@ -142,15 +104,3 @@ def autofix_records(records: Sequence[BaseRecord]) -> Sequence[BaseRecord]:
                 )
 
     return keep_records
-
-
-def create_mixed_record(
-    mixins: Sequence[Type[RecordMixin]], add_base: bool = True
-) -> Type[BaseRecord]:
-    mixins = (BaseRecord, *mixins) if add_base else tuple(mixins)
-
-    TemporaryRecord = type("Record", mixins, {})
-    class_name = "".join([o.__name__ for o in TemporaryRecord.mro()])
-
-    Record = type(class_name, mixins, {})
-    return patch_class_to_main(Record)

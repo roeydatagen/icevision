@@ -52,7 +52,7 @@ def dummy_parser_all_mixins():
 
 def test_parser_components(dummy_parser_all_mixins):
     parser = dummy_parser_all_mixins()
-    comp_groups = components.registry.get_components_groups(parser.components)
+    comp_groups = component_registry.get_components_groups(parser.components)
     assert set(comp_groups) == set(
         (
             "classmap",

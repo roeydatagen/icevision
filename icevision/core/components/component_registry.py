@@ -1,16 +1,4 @@
-__all__ = [
-    "registry",
-    "imageid",
-    "classmap",
-    "size",
-    "filepath",
-    "bbox",
-    "label",
-    "mask",
-    "area",
-    "iscrowd",
-    "keypoint",
-]
+__all__ = ["component_registry"]
 
 from icevision.imports import *
 
@@ -52,15 +40,4 @@ class _ComponentRegistry:
         ]
 
 
-registry = _ComponentRegistry()
-
-imageid = registry.new_component_registry("imageid")
-classmap = registry.new_component_registry("classmap")
-size = registry.new_component_registry("size")
-filepath = registry.new_component_registry("filepath")
-bbox = registry.new_component_registry("bbox")
-label = registry.new_component_registry("label")
-mask = registry.new_component_registry("mask")
-area = registry.new_component_registry("area")
-iscrowd = registry.new_component_registry("iscrowd")
-keypoint = registry.new_component_registry("keypoint")
+component_registry = _ComponentRegistry()
