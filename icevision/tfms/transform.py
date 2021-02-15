@@ -17,3 +17,7 @@ class Transform(ABC):
               dict: Modified values, the keys of the dictionary should have the same
               names as the keys received by this function
         """
+
+    @abstractmethod
+    def setup(self, components: Sequence[Component]):
+        """Setup the transform"""

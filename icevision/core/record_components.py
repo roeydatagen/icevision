@@ -156,15 +156,38 @@ class LabelsRecordComponent(RecordComponent):
     def __init__(self, composite):
         super().__init__(composite=composite)
         self.labels: List[int] = []
+        self.labels_names: List[Hashable] = []
 
+    # TODO: Deprecate `labels`
+    @property
+    def labels_ids(self) -> List[int]:
+        return self.labels
+
+    # TODO: rename to labels_ids
     def set_labels(self, labels: Sequence[int]):
         self.labels = list(labels)
+        self.labels_names = self._labels_ids_to_names(labels)
 
     def add_labels(self, labels: Sequence[int]):
         self.labels.extend(labels)
+        self.labels_names.extend(self._labels_ids_to_names(labels))
+
+    def set_labels_names(self, labels_names: Sequence[Hashable]):
+        self.labels_names = list(labels_names)
+        self.labels = self._labels_names_to_ids(labels_names)
+
+    def add_labels_names(self, labels_names: Sequence[Hashable]):
+        self.labels_names.extend(labels_names)
+        self.labels.extend(self._labels_names_to_ids(labels_names))
 
     def is_valid(self) -> List[bool]:
         return [True for _ in self.labels]
+
+    def _labels_ids_to_names(self, labels_ids):
+        return [self.record.class_map.get_by_id(id) for id in labels_ids]
+
+    def _labels_names_to_ids(self, labels_names):
+        return [self.record.class_map.get_by_name(id) for id in labels_names]
 
     def _num_annotations(self) -> Dict[str, int]:
         return {"labels": len(self.labels)}

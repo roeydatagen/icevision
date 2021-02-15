@@ -82,6 +82,13 @@ def test_crop_transform_empty(records):
     assert len(tfmed.iscrowds) == 0
     check_attribute_on_component(tfmed)
 
+    # assert orignal record was not changed
+    record = records[0]
+    assert len(record.labels) == 1
+    assert len(record.bboxes) == 1
+    assert len(record.masks) == 1
+    assert len(record.iscrowds) == 1
+
 
 def test_keypoints_transform(coco_keypoints_parser):
     records = coco_keypoints_parser.parse(data_splitter=SingleSplitSplitter())[0]

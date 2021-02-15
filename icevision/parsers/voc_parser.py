@@ -41,7 +41,8 @@ class VocXmlParser(Parser, FilepathMixin, SizeMixin, LabelsMixin, BBoxesMixin):
         class_map: Optional[ClassMap] = None,
         idmap: Optional[IDMap] = None,
     ):
-        super().__init__(class_map=class_map, idmap=idmap)
+        super().__init__(idmap=idmap)
+        self.class_map = class_map
         self.images_dir = Path(images_dir)
 
         self.annotations_dir = Path(annotations_dir)
@@ -58,6 +59,9 @@ class VocXmlParser(Parser, FilepathMixin, SizeMixin, LabelsMixin, BBoxesMixin):
         self._root = tree.getroot()
         self._filename = self._root.find("filename").text
         self._size = self._root.find("size")
+
+    def class_map(self, o) -> ClassMap:
+        return self.class_map
 
     def imageid(self, o) -> Hashable:
         return str(Path(self._filename).stem)

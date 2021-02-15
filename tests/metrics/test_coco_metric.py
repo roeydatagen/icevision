@@ -5,18 +5,24 @@ from copy import deepcopy
 
 @pytest.fixture()
 def records():
-    Record = create_mixed_record(
-        (SizeRecordMixin, FilepathRecordMixin, LabelsRecordMixin, BBoxesRecordMixin)
-    )
+    def _get_record():
+        return BaseRecord(
+            (
+                SizeRecordComponent,
+                FilepathRecordComponent,
+                LabelsRecordComponent,
+                BBoxesRecordComponent,
+            )
+        )
 
-    record1 = Record()
+    record1 = _get_record()
     record1.set_imageid(0)
     record1.set_filepath("none")
     record1.set_image_size(400, 400)
     record1.add_labels([2])
     record1.add_bboxes([BBox.from_xywh(10, 10, 200, 200)])
 
-    record2 = Record()
+    record2 = _get_record()
     record2.set_imageid(1)
     record2.set_filepath("none")
     record2.set_image_size(500, 500)
@@ -30,15 +36,17 @@ def records():
 
 @pytest.fixture()
 def preds(records):
-    pred1 = deepcopy(records[0].as_dict())
-    pred1["scores"] = [0.9]
-    pred1.pop("imageid")
+    pred = copy(records[0])
+    pred.add_component(ScoresRecordComponent)
 
-    pred2 = {
-        "labels": [3, 2],
-        "bboxes": [BBox.from_xywh(10, 10, 42, 70), BBox.from_xywh(10, 10, 450, 300)],
-        "scores": [0.8, 0.7],
-    }
+    pred1 = deepcopy(pred)
+    pred1.set_scores([0.9])
+
+    pred2 = deepcopy(pred)
+    pred2.set_labels([3, 2])
+    pred2.set_bboxes([BBox.from_xywh(10, 10, 42, 70), BBox.from_xywh(10, 10, 450, 300)])
+    pred2.set_scores([0.8, 0.7])
+
     return [pred1, pred2]
 
 

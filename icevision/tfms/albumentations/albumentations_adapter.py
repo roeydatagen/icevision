@@ -208,22 +208,16 @@ class AlbumentationsIsCrowdsComponent(AlbumentationsAdapterComponent):
         record.set_iscrowds(iscrowds)
 
 
-# TODO: Let's say same transforms are used for two different datasets types
-# with different components, Adapter should be created per Dataset
-def Adapter(tfms):
-    def _inner(components):
-        return _Adapter.from_components(tfms=tfms, components=components)
-
-    return _inner
-
-
-class _Adapter(Transform, Composite):
-    def __init__(self, tfms, components):
-        super().__init__(components=components)
+class Adapter(Transform, Composite):
+    def __init__(self, tfms):
         self.tfms_list = tfms
-        self.setup()
 
-    def setup(self):
+    def setup(self, components):
+        adapter_components = component_registry.match_components(
+            AlbumentationsAdapterComponent, components
+        )
+        super().__init__(components=adapter_components)
+
         self._compose_kwargs = {}
         self.reduce_on_components("setup")
         self.tfms = A.Compose(self.tfms_list, **self._compose_kwargs)
@@ -246,13 +240,6 @@ class _Adapter(Transform, Composite):
         self._albu_in = {}
 
         self.reduce_on_components("prepare", record=record)
-
-    @classmethod
-    def from_components(cls, tfms, components):
-        adapter_components = component_registry.match_components(
-            AlbumentationsAdapterComponent, components
-        )
-        return cls(tfms=tfms, components=adapter_components)
 
     def _filter_attribute(self, v: list):
         if self._keep_mask is None:

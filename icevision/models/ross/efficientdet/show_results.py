@@ -30,7 +30,6 @@ def show_results(
 ) -> None:
     return base_show_results(
         predict_fn=predict,
-        build_infer_batch_fn=build_infer_batch,
         model=model,
         dataset=dataset,
         class_map=class_map,

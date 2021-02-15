@@ -41,7 +41,7 @@ def predict(
     device: Optional[torch.device] = None,
 ) -> List[Prediction]:
 
-    batch, records = build_infer_batch(dataset=dataset)
+    batch, records = build_infer_batch(dataset)
     return _predict_batch(
         model=model,
         batch=batch,

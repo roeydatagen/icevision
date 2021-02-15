@@ -10,7 +10,7 @@ class _ComponentRegistry:
 
     def new_component_registry(self, name):
         if name in self.components:
-            raise ValueError("{name} is already registered")
+            raise ValueError(f"{name} is already registered")
 
         self.components[name] = []
         return partial(self.register_component, name=name)

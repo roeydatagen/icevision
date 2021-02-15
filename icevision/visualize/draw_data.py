@@ -25,7 +25,7 @@ def draw_sample(
     display_mask: bool = True,
     display_keypoints: bool = True,
 ):
-    img = sample["img"].copy()
+    img = sample.img.copy()
     if denormalize_fn is not None:
         img = denormalize_fn(img)
 
@@ -137,8 +137,8 @@ def draw_pred(
     display_bbox: bool = True,
     display_mask: bool = True,
 ):
-    sample = pred.copy()
-    sample["img"] = img
+    sample = copy(pred)
+    sample.set_img(img)
     return draw_sample(
         sample=sample,
         class_map=class_map,

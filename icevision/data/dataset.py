@@ -24,7 +24,9 @@ class Dataset:
         tfm: Optional[Transform] = None,
     ):
         self.records = records
-        self.tfm = tfm(records[0].components_cls) if tfm is not None else None
+        self.tfm = tfm
+        if self.tfm is not None:
+            self.tfm.setup(records[0].components_cls)
 
     def __len__(self):
         return len(self.records)

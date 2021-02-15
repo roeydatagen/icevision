@@ -17,31 +17,6 @@ def coco_imageid_map():
 
 
 @pytest.fixture()
-def fridge_efficientdet_records(samples_source):
-    IMG_SIZE = 384
-    filepath = samples_source / "fridge/odFridgeObjects/images/10.jpg"
-
-    img = open_img(filepath)
-    img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
-    img = normalize_imagenet(img)
-
-    labels = [2, 3]
-    bboxes = [BBox.from_xyxy(66, 58, 165, 252), BBox.from_xyxy(114, 216, 342, 282)]
-
-    record = {
-        "filepath": filepath,
-        "imageid": 10,
-        "img": img,
-        "height": IMG_SIZE,
-        "width": IMG_SIZE,
-        "labels": labels,
-        "bboxes": bboxes,
-    }
-
-    return [record]
-
-
-@pytest.fixture()
 def fridge_efficientdet_model() -> nn.Module:
     WEIGHTS_URL = "https://github.com/airctic/model_zoo/releases/download/m2/fridge_tf_efficientdet_lite0.zip"
     model = efficientdet.model("tf_efficientdet_lite0", num_classes=5, img_size=384)
@@ -70,13 +45,13 @@ def fridge_ds(samples_source, fridge_class_map) -> Tuple[Dataset, Dataset]:
         class_map=fridge_class_map,
     )
 
-    data_splitter = RandomSplitter([0.8, 0.2])
+    data_splitter = RandomSplitter([0.8, 0.2], seed=42)
     train_records, valid_records = parser.parse(data_splitter)
 
     tfms_ = tfms.A.Adapter([A.Resize(IMG_SIZE, IMG_SIZE), A.Normalize()])
 
-    train_ds = Dataset(train_records[:2], tfms_)
-    valid_ds = Dataset(valid_records[:2], tfms_)
+    train_ds = Dataset(train_records, tfms_)
+    valid_ds = Dataset(valid_records, tfms_)
 
     return train_ds, valid_ds
 
@@ -170,12 +145,12 @@ def coco_mask_records(coco_mask_parser):
 
 @pytest.fixture
 def coco_record(coco_mask_records):
-    return coco_mask_records[0].copy()
+    return deepcopy(coco_mask_records[0])
 
 
 @pytest.fixture
 def coco_sample(coco_record):
-    return coco_record.load().copy()
+    return deepcopy(coco_record.load())
 
 
 @pytest.fixture

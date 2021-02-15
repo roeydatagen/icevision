@@ -47,3 +47,11 @@ def test_composite_copy():
     composite = Composite((MockComponent1, MockComponent2))
     copy(composite)
     deepcopy(composite)
+
+
+def test_composite_add_component():
+    composite = Composite([])
+    composite.add_component(MockComponent1)
+    composite.add_component(MockComponent2)
+
+    assert composite.components_cls == [MockComponent2, MockComponent1]

@@ -155,7 +155,8 @@ def show_preds(
             f"the number of preds ({len(preds)})"
         )
 
-    if all(type(x) is dict for x in samples):
+    # TODO: Very hacky
+    if all(isinstance(x, BaseRecord) for x in samples):
         actuals = [
             draw_sample(
                 sample=sample,
@@ -168,7 +169,7 @@ def show_preds(
             for sample in samples
         ]
 
-        imgs = [sample["img"] for sample in samples]
+        imgs = [sample.img for sample in samples]
         predictions = [
             draw_pred(
                 img=img,

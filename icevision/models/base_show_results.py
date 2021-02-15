@@ -9,7 +9,6 @@ from icevision.data import *
 
 def base_show_results(
     predict_fn: callable,
-    build_infer_batch_fn: callable,
     model: nn.Module,
     dataset: Dataset,
     class_map: Optional[ClassMap] = None,
@@ -19,12 +18,11 @@ def base_show_results(
     show: bool = True,
     **predict_kwargs,
 ) -> None:
-    samples = random.choices(dataset, k=num_samples)
-    batch, samples = build_infer_batch_fn(samples)
-    preds = predict_fn(model, batch, **predict_kwargs)
+    records = random.choices(dataset, k=num_samples)
+    preds = predict_fn(model, records, **predict_kwargs)
 
     show_preds(
-        samples,
+        records,
         preds,
         class_map=class_map,
         denormalize_fn=denormalize_fn,

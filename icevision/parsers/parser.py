@@ -21,7 +21,7 @@ class ParserInterface(ABC):
         pass
 
 
-class Parser(ClassMapMixin, ImageidMixin, SizeMixin, ParserInterface, ABC):
+class Parser(ImageidMixin, SizeMixin, ParserInterface, ABC):
     """Base class for all parsers, implements the main parsing logic.
 
     The actual fields to be parsed are defined by the mixins used when
@@ -43,9 +43,9 @@ class Parser(ClassMapMixin, ImageidMixin, SizeMixin, ParserInterface, ABC):
     def __init__(
         self, class_map: Optional[ClassMap] = None, idmap: Optional[IDMap] = None
     ):
-        self.class_map = class_map or ClassMap()
-        if class_map is None:
-            self.class_map.unlock()
+        # self.class_map = class_map or ClassMap()
+        # if class_map is None:
+        #     self.class_map.unlock()
         self.idmap = idmap or IDMap()
 
     @abstractmethod
@@ -55,18 +55,18 @@ class Parser(ClassMapMixin, ImageidMixin, SizeMixin, ParserInterface, ABC):
     def prepare(self, o):
         pass
 
-    def record_class(self) -> BaseRecord:
+    def record_class(self) -> Type[BaseRecord]:
+        return BaseRecord
+
+    def create_record(self) -> BaseRecord:
+        record_class = self.record_class()
         record_components = component_registry.match_components(
             RecordComponent, self.components
         )
 
-        def _inner():
-            return BaseRecord(record_components)
-
-        return _inner
+        return record_class(record_components)
 
     def parse_dicted(self, show_pbar: bool = True) -> Dict[int, RecordType]:
-        Record = self.record_class()
         records = {}
 
         for sample in pbar(self, show_pbar):
@@ -78,7 +78,7 @@ class Parser(ClassMapMixin, ImageidMixin, SizeMixin, ParserInterface, ABC):
                 try:
                     record = records[imageid]
                 except KeyError:
-                    record = Record()
+                    record = self.create_record()
 
                 self.parse_fields(sample, record)
 
@@ -119,10 +119,6 @@ class Parser(ClassMapMixin, ImageidMixin, SizeMixin, ParserInterface, ABC):
         # Returns
             A list of records for each split defined by `data_splitter`.
         """
-
-        # Hack to define the class of the mixed_record in the local namespace. This is required for pickeling.
-        Record = self.record_class()
-
         if self._check_path(cache_filepath):
             logger.info(
                 f"Loading cached records from {cache_filepath}",
@@ -144,7 +140,7 @@ class Parser(ClassMapMixin, ImageidMixin, SizeMixin, ParserInterface, ABC):
 
                 all_splits_records.append(split_records)
 
-            self.class_map.lock()
+            # self.class_map.lock()
             if cache_filepath is not None:
                 pickle.dump(all_splits_records, open(Path(cache_filepath), "wb"))
 

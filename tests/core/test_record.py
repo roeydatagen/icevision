@@ -31,8 +31,13 @@ def test_record_load(record):
     assert isinstance(record_loaded.masks, MaskArray)
 
     # test original record is not modified
-    assert not hasattr(record, "img")
+    assert record.img == None
     assert isinstance(record.masks, EncodedRLEs)
+
+    # test unload
+    record_loaded.unload()
+    assert record_loaded.img == None
+    assert isinstance(record_loaded.masks, EncodedRLEs)
 
 
 @pytest.fixture

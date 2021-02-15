@@ -34,8 +34,16 @@ class ParserMixin(ABC):
 @ClassMapComponent
 class ClassMapMixin(ParserMixin):
     def parse_fields(self, o, record):
-        record.set_class_map(self.class_map)
+        record.set_class_map(self.class_map(o))
         super().parse_fields(o, record)
+
+    @abstractmethod
+    def class_map(self, o) -> ClassMap:
+        pass
+
+    @classmethod
+    def _templates(cls) -> List[str]:
+        return ["def class_map(self, o) -> ClassMap:"] + super()._templates()
 
 
 @ImageidComponent
@@ -114,10 +122,7 @@ class LabelsMixin(ParserMixin):
     def parse_fields(self, o, record):
         # super first because class_map need to be set before
         super().parse_fields(o, record)
-
-        names = self.labels(o)
-        ids = [self.class_map.get_by_name(name) for name in names]
-        record.add_labels(ids)
+        record.add_labels_names(self.labels(o))
 
     @abstractmethod
     def labels(self, o) -> List[Hashable]:

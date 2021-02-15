@@ -32,7 +32,7 @@ class Composite:
                 return getattr(component, name)
             except AttributeError:
                 pass
-        raise AttributeError(name)
+        raise AttributeError(f"{self.__class__.__name__} has no attribute {name}")
 
     def reduce_on_components(
         self, fn_name: str, reduction: Optional[str] = None, **fn_kwargs

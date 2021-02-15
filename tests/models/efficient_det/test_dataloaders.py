@@ -85,8 +85,7 @@ def test_efficient_det_valid_dataloader(records):
 @pytest.mark.parametrize(
     "batch_tfms", [None, tfms.batch.ImgPadStack(np.array(0, dtype=np.uint8))]
 )
-def test_efficient_det_build_infer_batch(img, batch_tfms):
-    records = [{"img": img, "height": 4, "width": 4}] * 2
+def test_efficient_det_build_infer_batch(records, batch_tfms, img):
     batch, records = efficientdet.build_infer_batch(records, batch_tfms=batch_tfms)
 
     tensor_img = torch.stack([im2tensor(img), im2tensor(img)])
