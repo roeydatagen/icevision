@@ -10,7 +10,7 @@ from icevision.core.record_components import *
 
 # TODO: MutableMapping because of backwards compatability
 # TODO: Rename to Record
-class BaseRecord(Composite, MutableMapping):
+class BaseRecord(TaskComposite, MutableMapping):
     base_components = {ImageidRecordComponent, SizeRecordComponent}
 
     def as_dict(self) -> dict:
@@ -49,6 +49,7 @@ class BaseRecord(Composite, MutableMapping):
 
         return success_dict
 
+    # TODO: Might have weird interaction with task_components
     def remove_annotation(self, i: int):
         self.reduce_on_components("_remove_annotation", i=i)
 
@@ -64,10 +65,23 @@ class BaseRecord(Composite, MutableMapping):
     def unload(self):
         self.reduce_on_components("_unload")
 
+    def setup_transform(self, tfm):
+        self.reduce_on_components("setup_transform", tfm=tfm)
+
+    def builder_template(self) -> List[str]:
+        res = self.reduce_on_components("builder_template", reduction="extend").values()
+        return [line for lines in res for line in lines]
+
     def __repr__(self) -> str:
-        _reprs = self.reduce_on_components("_repr", reduction="extend")
-        _repr = "".join(f"\n\t- {o}" for o in _reprs)
-        return f"Record:{_repr}"
+        tasks_reprs = self.reduce_on_components("_repr", reduction="extend")
+
+        def join_one(reprs):
+            return "".join(f"\n\t- {o}" for o in reprs)
+
+        reprs = [f"{task}: {join_one(reprs)}" for task, reprs in tasks_reprs.items()]
+        repr = "\n".join(reprs)
+
+        return f"{self.__class__.__name__}\n\n{repr}"
 
     # backwards compatiblity: implemented method to behave like a dict
     def __getitem__(self, key):

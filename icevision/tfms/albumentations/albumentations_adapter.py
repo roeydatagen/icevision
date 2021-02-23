@@ -19,6 +19,12 @@ from icevision.core import *
 from icevision.tfms.transform import *
 
 
+@dataclass
+class CollectOp:
+    fn: Callable
+    order: float = 0.5
+
+
 class AlbumentationsAdapterComponent(Component):
     @property
     def adapter(self):
@@ -58,28 +64,38 @@ class AlbumentationsSizeComponent(AlbumentationsAdapterComponent):
 class AlbumentationsLabelsComponent(AlbumentationsAdapterComponent):
     order = 0.1
 
-    def prepare(self, record):
-        self._original_labels = record.labels
+    def get_labels(self, record):
+        return record.labels
+
+    def set_labels(self, record, labels):
+        record.set_labels(labels)
+
+    def setup_labels(self, record):
+        self._original_labels = self.get_labels(record)
         # Substitue labels with list of idxs, so we can also filter out iscrowds in case any bboxes are removed
         self.adapter._albu_in["labels"] = list(range(len(self._original_labels)))
 
-    def collect(self, record):
+        self.adapter.ops.append(CollectOp(self.collect_labels), order=0.1)
+
+    def collect_labels(self, record):
         self.adapter._keep_mask = np.zeros(len(self._original_labels), dtype=bool)
         self.adapter._keep_mask[self.adapter._albu_out["labels"]] = True
 
         labels = self.adapter._filter_attribute(self._original_labels)
-        record.set_labels(labels)
+        self.set_labels(record, labels)
 
 
 @BBoxComponent
 class AlbumentationsBBoxesComponent(AlbumentationsAdapterComponent):
-    def setup(self):
+    def setup_bboxes(self, record):
         self.adapter._compose_kwargs["bbox_params"] = A.BboxParams(
             format="pascal_voc", label_fields=["labels"]
         )
+        # TODO: albumentations has a way of sending information that can be used for tasks
 
-    def prepare(self, record):
         self.adapter._albu_in["bboxes"] = [o.xyxy for o in record.bboxes]
+
+        self.adapter.ops.append(CollectOp(self.collect))
 
     def collect(self, record) -> List[BBox]:
         # TODO: quickfix from 576
@@ -208,19 +224,27 @@ class AlbumentationsIsCrowdsComponent(AlbumentationsAdapterComponent):
         record.set_iscrowds(iscrowds)
 
 
-class Adapter(Transform, Composite):
+class Adapter(Transform):
     def __init__(self, tfms):
         self.tfms_list = tfms
 
-    def setup(self, components):
-        adapter_components = component_registry.match_components(
-            AlbumentationsAdapterComponent, components
-        )
-        super().__init__(components=adapter_components)
-
+    def apply(self, record):
+        # setup
         self._compose_kwargs = {}
-        self.reduce_on_components("setup")
-        self.tfms = A.Compose(self.tfms_list, **self._compose_kwargs)
+        self._keep_mask = None
+        self._albu_in = {}
+        self._collect_ops = []
+        record.setup_transform(tfm=self)
+
+        # apply transform
+        self._albu_out = self.tfms(**self._albu_in)
+
+        # store additional info (might be used by components on `collect`)
+        self._size_no_padding = self._get_size_without_padding(record)
+
+        # collect results
+        for collect_op in sorted(self.collect_ops, key=lambda x: x.order):
+            collect_op.fn()
 
     def apply(self, record):
         self.prepare(record)
@@ -233,13 +257,6 @@ class Adapter(Transform, Composite):
         self.reduce_on_components("collect", record=record)
 
         return record
-
-    def prepare(self, record):
-        # use a dict that is passed, like out and size_no_padding
-        self._keep_mask = None
-        self._albu_in = {}
-
-        self.reduce_on_components("prepare", record=record)
 
     def _filter_attribute(self, v: list):
         if self._keep_mask is None:

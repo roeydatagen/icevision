@@ -2,6 +2,7 @@ __all__ = ["ParserInterface", "Parser"]
 
 from icevision.imports import *
 from icevision.utils import *
+from icevision.utils.code_template import *
 from icevision.core import *
 from icevision.data import *
 from icevision.parsers.mixins import *
@@ -21,7 +22,7 @@ class ParserInterface(ABC):
         pass
 
 
-class Parser(ImageidMixin, SizeMixin, ParserInterface, ABC):
+class Parser(ParserInterface, ImageidMixin, ABC):
     """Base class for all parsers, implements the main parsing logic.
 
     The actual fields to be parsed are defined by the mixins used when
@@ -41,37 +42,39 @@ class Parser(ImageidMixin, SizeMixin, ParserInterface, ABC):
     """
 
     def __init__(
-        self, class_map: Optional[ClassMap] = None, idmap: Optional[IDMap] = None
+        self,
+        record,
+        class_map: Optional[ClassMap] = None,
+        idmap: Optional[IDMap] = None,
     ):
         # self.class_map = class_map or ClassMap()
         # if class_map is None:
         #     self.class_map.unlock()
+        self._record = record
         self.idmap = idmap or IDMap()
 
     @abstractmethod
     def __iter__(self) -> Any:
         pass
 
-    def prepare(self, o):
-        pass
-
-    def record_class(self) -> Type[BaseRecord]:
-        return BaseRecord
+    # def record_class(self) -> Type[BaseRecord]:
+    #     return BaseRecord
 
     def create_record(self) -> BaseRecord:
-        record_class = self.record_class()
-        record_components = component_registry.match_components(
-            RecordComponent, self.components
-        )
+        return deepcopy(self._record)
+        # record_class = self.record_class()
+        # record_components = component_registry.match_components(
+        #     RecordComponent, self.components
+        # )
 
-        return record_class(record_components)
+        # return record_class(record_components)
 
     def parse_dicted(self, show_pbar: bool = True) -> Dict[int, RecordType]:
         records = {}
 
         for sample in pbar(self, show_pbar):
             try:
-                self.prepare(sample)
+                # TODO: Do we still need idmap?
                 true_imageid = self.imageid(sample)
                 imageid = self.idmap[true_imageid]
 
@@ -152,6 +155,18 @@ class Parser(ImageidMixin, SizeMixin, ParserInterface, ABC):
         return ["def __iter__(self) -> Any:"] + templates
 
     @classmethod
-    def generate_template(cls):
-        for template in cls._templates():
-            print(f"{template}")
+    def generate_template(cls, record):
+        record_builder_template = record.builder_template()
+
+        template = CodeTemplate()
+        template.add_line(f"class MyParser({cls.__name__}):", 0)
+        template.add_line(f"def __init__(self, record):", 1)
+        template.add_line(f"super().__init__(record=record)", 2)
+        template.add_line(f"def __iter__(self, o) -> Any:", 1)
+        # template.add_line("def create_record(self) -> BaseRecord:", 1)
+        # template.add_line(f"return {record.__class__.__name__}({components_names})", 2)
+        template.add_line("def imageid(self, o) -> Hashable:", 1)
+        template.add_line("def parser_fields(self, o, record):", 1)
+        template.add_lines(record_builder_template, 2)
+
+        template.display()

@@ -34,7 +34,7 @@ class ParserMixin(ABC):
 @ClassMapComponent
 class ClassMapMixin(ParserMixin):
     def parse_fields(self, o, record):
-        record.set_class_map(self.class_map(o))
+        record.od.set_class_map(self.class_map(o))
         super().parse_fields(o, record)
 
     @abstractmethod
@@ -122,7 +122,7 @@ class LabelsMixin(ParserMixin):
     def parse_fields(self, o, record):
         # super first because class_map need to be set before
         super().parse_fields(o, record)
-        record.add_labels_names(self.labels(o))
+        record.od.add_labels_names(self.labels(o))
 
     @abstractmethod
     def labels(self, o) -> List[Hashable]:
@@ -143,7 +143,7 @@ class BBoxesMixin(ParserMixin):
     """Adds `bboxes` method to parser"""
 
     def parse_fields(self, o, record):
-        record.add_bboxes(self.bboxes(o))
+        record.od.add_bboxes(self.bboxes(o))
         super().parse_fields(o, record)
 
     @abstractmethod
@@ -161,7 +161,7 @@ class MasksMixin(ParserMixin):
     """Adds `masks` method to parser"""
 
     def parse_fields(self, o, record) -> None:
-        super().parse_fields(o, record)
+        super().od.parse_fields(o, record)
         record.add_masks(self.masks(o))
 
     @abstractmethod
@@ -179,7 +179,7 @@ class AreasMixin(ParserMixin):
     """Adds `areas` method to parser"""
 
     def parse_fields(self, o, record) -> None:
-        record.add_areas(self.areas(o))
+        record.od.add_areas(self.areas(o))
         super().parse_fields(o, record)
 
     @abstractmethod
@@ -197,7 +197,7 @@ class IsCrowdsMixin(ParserMixin):
     """Adds `iscrowds` method to parser"""
 
     def parse_fields(self, o, record):
-        record.add_iscrowds(self.iscrowds(o))
+        record.od.add_iscrowds(self.iscrowds(o))
         super().parse_fields(o, record)
 
     @abstractmethod
@@ -215,7 +215,7 @@ class KeyPointsMixin(ParserMixin):
     """Adds `keypoints` method to parser"""
 
     def parse_fields(self, o, record):
-        record.add_keypoints(self.keypoints(o))
+        record.od.add_keypoints(self.keypoints(o))
         super().parse_fields(o, record)
 
     @abstractmethod

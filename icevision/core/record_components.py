@@ -22,9 +22,10 @@ from icevision.core.mask import *
 from icevision.core.exceptions import *
 from icevision.core.keypoints import *
 from icevision.core.class_map import *
+from icevision.core import tasks
 
 
-class RecordComponent(Component):
+class RecordComponent(TaskComponent):
     # TODO: as_dict is only necessary because of backwards compatibility
     @property
     def record(self):
@@ -54,14 +55,30 @@ class RecordComponent(Component):
     def _repr(self) -> List[str]:
         return []
 
+    def builder_template(self) -> List[str]:
+        return self._format_builder_template(self._builder_template())
+
+    def _builder_template(self) -> List[str]:
+        return []
+
+    def _format_builder_template(self, lines):
+        task = f".{self.task.name}." if self.task != tasks.default else "."
+        return [line.format(task=task) for line in lines]
+
 
 @ClassMapComponent
 class ClassMapRecordComponent(RecordComponent):
+    def __init__(self, task=tasks.detect):
+        super().__init__(task=task)
+
     def set_class_map(self, class_map: ClassMap):
         self.class_map = class_map
 
     def as_dict(self) -> dict:
         return {"class_map": self.class_map}
+
+    def _builder_template(self) -> List[str]:
+        return ["record{task}set_class_map(<ClassMap>)"]
 
 
 @ImageidComponent
@@ -80,8 +97,8 @@ class ImageidRecordComponent(RecordComponent):
 # TODO: rename to ImageArrayRecordComponent
 @ImageArrayComponent
 class ImageRecordComponent(RecordComponent):
-    def __init__(self, composite):
-        super().__init__(composite=composite)
+    def __init__(self, task=tasks.default):
+        super().__init__(task=task)
         self.img = None
 
     def set_img(self, img: np.ndarray):
@@ -122,6 +139,9 @@ class FilepathRecordComponent(ImageRecordComponent):
     def as_dict(self) -> dict:
         return {"filepath": self.filepath, **super().as_dict()}
 
+    def _builder_template(self) -> List[str]:
+        return ["record{task}set_filepath(<Union[str, Path]>)"]
+
 
 @SizeComponent
 class SizeRecordComponent(RecordComponent):
@@ -149,12 +169,15 @@ class SizeRecordComponent(RecordComponent):
         info = [{"img_width": self.width, "img_height": self.height}]
         return {"img_size": info}
 
+    def _builder_template(self) -> List[str]:
+        return ["record{task}set_img_size(<ImgSize>)"]
+
 
 @LabelComponent
 ### Annotation parsers ###
-class LabelsRecordComponent(RecordComponent):
-    def __init__(self, composite):
-        super().__init__(composite=composite)
+class LabelsRecordComponent(ClassMapRecordComponent):
+    def __init__(self, task=tasks.detect):
+        super().__init__(task=task)
         self.labels: List[int] = []
         self.labels_names: List[Hashable] = []
 
@@ -199,19 +222,25 @@ class LabelsRecordComponent(RecordComponent):
         self.labels.pop(i)
 
     def _aggregate_objects(self) -> Dict[str, List[dict]]:
-        return {"labels": self.labels}
+        return {**super()._aggregate_objects(), "labels": self.labels}
 
     def _repr(self) -> List[str]:
-        return [f"Labels: {self.labels}"]
+        return [*super()._repr(), f"Labels: {self.labels}"]
 
     def as_dict(self) -> dict:
         return {"labels": self.labels}
 
+    def _builder_template(self) -> List[str]:
+        return [
+            *super()._builder_template(),
+            "record{task}add_labels_names(<Sequence[Hashable]>)",
+        ]
+
 
 @BBoxComponent
 class BBoxesRecordComponent(RecordComponent):
-    def __init__(self, composite):
-        super().__init__(composite=composite)
+    def __init__(self, task=tasks.detect):
+        super().__init__(task=task)
         self.bboxes: List[BBox] = []
 
     def set_bboxes(self, bboxes: Sequence[BBox]):
@@ -263,9 +292,19 @@ class BBoxesRecordComponent(RecordComponent):
     def as_dict(self) -> dict:
         return {"bboxes": self.bboxes}
 
+    # TODO: transforms
+    def setup_transform(self, tfm):
+        tfm.setup_bboxes(self)
+
+    def _builder_template(self) -> List[str]:
+        return ["record{task}add_bboxes(<Sequence[BBox]>)"]
+
 
 @MaskComponent
 class MasksRecordComponent(RecordComponent):
+    def __init__(self, task=tasks.detect):
+        super().__init__(task=task)
+
     def __init__(self, composite):
         super().__init__(composite=composite)
         self.masks = EncodedRLEs()
@@ -304,8 +343,8 @@ class MasksRecordComponent(RecordComponent):
 
 @AreaComponent
 class AreasRecordComponent(RecordComponent):
-    def __init__(self, composite):
-        super().__init__(composite=composite)
+    def __init__(self, task=tasks.detect):
+        super().__init__(task=task)
         self.areas: List[float] = []
 
     def add_areas(self, areas: Sequence[float]):
@@ -329,8 +368,8 @@ class AreasRecordComponent(RecordComponent):
 
 @IsCrowdComponent
 class IsCrowdsRecordComponent(RecordComponent):
-    def __init__(self, composite):
-        super().__init__(composite=composite)
+    def __init__(self, task=tasks.detect):
+        super().__init__(task=task)
         self.iscrowds: List[bool] = []
 
     def set_iscrowds(self, iscrowds: Sequence[bool]):
@@ -357,8 +396,8 @@ class IsCrowdsRecordComponent(RecordComponent):
 
 @KeyPointComponent
 class KeyPointsRecordComponent(RecordComponent):
-    def __init__(self, composite):
-        super().__init__(composite=composite)
+    def __init__(self, task=tasks.detect):
+        super().__init__(task=task)
         self.keypoints: List[KeyPoints] = []
 
     def set_keypoints(self, keypoints: Sequence[KeyPoints]):
@@ -382,6 +421,9 @@ class KeyPointsRecordComponent(RecordComponent):
 
 
 class ScoresRecordComponent(RecordComponent):
+    def __init__(self, task=tasks.detect):
+        super().__init__(task=task)
+
     def set_scores(self, scores: Sequence[float]):
         self.scores = scores
 
